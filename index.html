@@ -998,7 +998,7 @@
                 <h2 class="card-title">Tank Configuration</h2>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="tankVolume">Tank Volume <span class="unit-display volume-unit">(CF)</span></label>
+                        <label for="tankVolume"><span class="tank-volume-label">Tank Volume </span><span class="unit-display volume-unit">(CF)</span></label>
                         <input type="number" id="tankVolume" value="120" min="1" step="1">
                     </div>
                     <div class="form-group">
@@ -1088,7 +1088,7 @@
                 <h2 class="card-title">Tank Configuration</h2>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="topupTankVolume">Tank Volume <span class="unit-display volume-unit">(CF)</span></label>
+                        <label for="topupTankVolume"><span class="tank-volume-label">Tank Volume </span><span class="unit-display volume-unit">(CF)</span></label>
                         <input type="number" id="topupTankVolume" value="120" min="1" step="1">
                     </div>
                     <div class="form-group">
@@ -1331,35 +1331,64 @@
             document.querySelectorAll('.pressure-unit').forEach(el => {
                 el.textContent = isMetric ? '(bar)' : '(PSI)';
             });
+            // Update tank volume labels to clarify water capacity vs gas capacity
+            document.querySelectorAll('.tank-volume-label').forEach(el => {
+                el.textContent = isMetric ? 'Tank Water Capacity ' : 'Tank Volume ';
+            });
         }
 
         function convertAllInputValues() {
-            // Tab 1
-            convertInputValue('tankVolume', 'volume');
-            convertInputValue('endPressure', 'pressure');
+            // Get all current values before conversion
+            const tankVolume = parseFloat(document.getElementById('tankVolume').value);
+            const endPressure = parseFloat(document.getElementById('endPressure').value);
+            const topupTankVolume = parseFloat(document.getElementById('topupTankVolume').value);
+            const topupEndPressure = parseFloat(document.getElementById('topupEndPressure').value);
+            const currentPressure = parseFloat(document.getElementById('currentPressure').value);
 
-            // Tab 2
-            convertInputValue('topupTankVolume', 'volume');
-            convertInputValue('topupEndPressure', 'pressure');
-            convertInputValue('currentPressure', 'pressure');
-        }
+            if (isMetric) {
+                // Converting from Imperial to Metric
+                // Pressures: PSI → bar
+                const endPressureBar = endPressure * PSI_TO_BAR;
+                const topupEndPressureBar = topupEndPressure * PSI_TO_BAR;
+                const currentPressureBar = currentPressure * PSI_TO_BAR;
 
-        function convertInputValue(inputId, type) {
-            const input = document.getElementById(inputId);
-            if (!input) return;
+                // Tank volumes: CF (gas capacity) → L (water capacity)
+                // Gas capacity (L) = CF × CF_TO_LITERS
+                // Water capacity (L) = Gas capacity (L) / pressure (bar)
+                const gasCapacityL = tankVolume * CF_TO_LITERS;
+                const waterCapacityL = gasCapacityL / endPressureBar;
 
-            if (type === 'volume') {
-                if (isMetric) {
-                    input.value = Math.round(parseFloat(input.value) * CF_TO_LITERS);
-                } else {
-                    input.value = Math.round(parseFloat(input.value) * LITERS_TO_CF);
-                }
-            } else if (type === 'pressure') {
-                if (isMetric) {
-                    input.value = Math.round(parseFloat(input.value) * PSI_TO_BAR);
-                } else {
-                    input.value = Math.round(parseFloat(input.value) * BAR_TO_PSI);
-                }
+                const topupGasCapacityL = topupTankVolume * CF_TO_LITERS;
+                const topupWaterCapacityL = topupGasCapacityL / topupEndPressureBar;
+
+                // Update all inputs
+                document.getElementById('endPressure').value = Math.round(endPressureBar);
+                document.getElementById('topupEndPressure').value = Math.round(topupEndPressureBar);
+                document.getElementById('currentPressure').value = Math.round(currentPressureBar);
+                document.getElementById('tankVolume').value = Math.round(waterCapacityL);
+                document.getElementById('topupTankVolume').value = Math.round(topupWaterCapacityL);
+            } else {
+                // Converting from Metric to Imperial
+                // Tank volumes: L (water capacity) → CF (gas capacity)
+                // Gas capacity (L) = water capacity (L) × pressure (bar)
+                // Gas capacity (CF) = Gas capacity (L) × LITERS_TO_CF
+                const gasCapacityL = tankVolume * endPressure;
+                const gasCF = gasCapacityL * LITERS_TO_CF;
+
+                const topupGasCapacityL = topupTankVolume * topupEndPressure;
+                const topupGasCF = topupGasCapacityL * LITERS_TO_CF;
+
+                // Pressures: bar → PSI
+                const endPressurePSI = endPressure * BAR_TO_PSI;
+                const topupEndPressurePSI = topupEndPressure * BAR_TO_PSI;
+                const currentPressurePSI = currentPressure * BAR_TO_PSI;
+
+                // Update all inputs
+                document.getElementById('endPressure').value = Math.round(endPressurePSI);
+                document.getElementById('topupEndPressure').value = Math.round(topupEndPressurePSI);
+                document.getElementById('currentPressure').value = Math.round(currentPressurePSI);
+                document.getElementById('tankVolume').value = Math.round(gasCF);
+                document.getElementById('topupTankVolume').value = Math.round(topupGasCF);
             }
         }
 
@@ -1377,8 +1406,18 @@
             const topOffO2 = parseFloat(document.getElementById('topOffGas').value) / 100;
             const topOffN2 = 1 - topOffO2;
 
-            let volumeInCF = isMetric ? tankVolume * LITERS_TO_CF : tankVolume;
-            let pressureInPSI = isMetric ? endPressure * BAR_TO_PSI : endPressure;
+            let volumeInCF;
+            let pressureInPSI;
+            if (isMetric) {
+                // In metric: tankVolume is water capacity (L), endPressure is bar
+                // Gas capacity (L) = water capacity (L) × pressure (bar)
+                const gasCapacityL = tankVolume * endPressure;
+                volumeInCF = gasCapacityL * LITERS_TO_CF;
+                pressureInPSI = endPressure * BAR_TO_PSI;
+            } else {
+                volumeInCF = tankVolume;
+                pressureInPSI = endPressure;
+            }
 
             if (isDouble) {
                 volumeInCF *= 2;
@@ -1581,9 +1620,21 @@
             const topOffN2 = 1 - topOffO2;
 
             // Convert to imperial for calculation
-            let volumeInCF = isMetric ? tankVolume * LITERS_TO_CF : tankVolume;
-            let currentPSI = isMetric ? currentPressure * BAR_TO_PSI : currentPressure;
-            let endPSI = isMetric ? endPressure * BAR_TO_PSI : endPressure;
+            let volumeInCF;
+            let currentPSI;
+            let endPSI;
+            if (isMetric) {
+                // In metric: tankVolume is water capacity (L), pressures are in bar
+                // Gas capacity (L) = water capacity (L) × pressure (bar)
+                const gasCapacityL = tankVolume * endPressure;
+                volumeInCF = gasCapacityL * LITERS_TO_CF;
+                currentPSI = currentPressure * BAR_TO_PSI;
+                endPSI = endPressure * BAR_TO_PSI;
+            } else {
+                volumeInCF = tankVolume;
+                currentPSI = currentPressure;
+                endPSI = endPressure;
+            }
 
             if (isTopupDouble) {
                 volumeInCF *= 2;
