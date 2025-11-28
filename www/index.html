@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Trimix Fill Calculator</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #0f3460;
+            --accent: #e94560;
+            --accent-hover: #ff6b6b;
+            --text-primary: #eee;
+            --text-secondary: #aaa;
+            --success: #4ecca3;
+            --warning: #ffc107;
+            --helium: #9b59b6;
+            --oxygen: #3498db;
+            --nitrogen: #2ecc71;
+            --air: #f39c12;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            color: var(--text-primary);
+            padding: 20px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            height: -webkit-fill-available;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, var(--accent), var(--oxygen));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 5px;
+            margin-bottom: 20px;
+            gap: 5px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .tab-btn:not(.active):hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .form-grid-4 {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        input[type="number"], select {
+            padding: 12px 15px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 16px;
+            transition: all 0.3s ease;
+            min-height: 48px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23aaa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            padding-right: 40px;
+        }
+
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(233, 69, 96, 0.3);
+        }
+
+        input[readonly] {
+            opacity: 0.7;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 60px;
+            height: 34px;
+            background: var(--bg-secondary);
+            border-radius: 17px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            flex-shrink: 0;
+            min-width: 60px;
+            touch-action: manipulation;
+        }
+
+        .toggle.active {
+            background: var(--accent);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            background: var(--text-primary);
+            border-radius: 50%;
+            top: 4px;
+            left: 4px;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle.active::after {
+            transform: translateX(26px);
+        }
+
+        .toggle-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            min-width: 70px;
+        }
+
+        .btn {
+            padding: 16px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-height: 56px;
+            touch-action: manipulation;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(233, 69, 96, 0.3);
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .mix-badge {
+            background: var(--accent);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .fill-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .fill-table th, .fill-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .fill-table th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        .fill-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .gas-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .gas-helium { background: var(--helium); }
+        .gas-oxygen { background: var(--oxygen); }
+        .gas-air { background: var(--air); }
+        .gas-existing { background: var(--text-secondary); }
+
+        .procedure-step {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .step-number {
+            width: 35px;
+            height: 35px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-pressure {
+            font-weight: 700;
+            color: var(--success);
+            font-size: 1.1rem;
+        }
+
+        .verification {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .verification-title {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: var(--success);
+        }
+
+        .verification-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .verification-item {
+            text-align: center;
+            padding: 15px;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+
+        .verification-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .verification-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .verification-check {
+            color: var(--success);
+            font-size: 0.9rem;
+        }
+
+        .error-message {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid var(--accent);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .warning-message {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid var(--warning);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .info-message {
+            background: rgba(52, 152, 219, 0.2);
+            border: 1px solid var(--oxygen);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .unit-display {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Section divider */
+        .section-divider {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .section-divider::before,
+        .section-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .section-divider span {
+            padding: 0 15px;
+        }
+
+        /* Tablet styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .card {
+                padding: 20px;
+                border-radius: 12px;
+            }
+
+            .fill-table th, .fill-table td {
+                padding: 12px 10px;
+            }
+
+            .tab-btn {
+                padding: 12px 15px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Mobile styles */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+                line-height: 1.2;
+            }
+
+            .subtitle {
+                font-size: 0.95rem;
+            }
+
+            header {
+                margin-bottom: 15px;
+            }
+
+            .tab-nav {
+                margin-bottom: 15px;
+            }
+
+            .tab-btn {
+                padding: 12px 8px;
+                font-size: 0.8rem;
+            }
+
+            .card {
+                padding: 16px;
+                margin-bottom: 15px;
+                border-radius: 10px;
+            }
+
+            .card-title {
+                font-size: 1.1rem;
+                margin-bottom: 15px;
+            }
+
+            .form-grid, .form-grid-4 {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .form-group label {
+                font-size: 0.95rem;
+            }
+
+            input[type="number"], select {
+                padding: 14px 12px;
+                font-size: 16px;
+                min-height: 52px;
+            }
+
+            .toggle-container {
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .toggle-label {
+                min-width: 60px;
+                font-size: 0.9rem;
+                text-align: center;
+            }
+
+            .btn {
+                padding: 18px 20px;
+                font-size: 1rem;
+                min-height: 60px;
+            }
+
+            .result-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .mix-badge {
+                align-self: flex-start;
+            }
+
+            /* Responsive table for mobile */
+            .fill-table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .fill-table thead {
+                display: none;
+            }
+
+            .fill-table tbody {
+                display: block;
+            }
+
+            .fill-table tr {
+                display: flex;
+                flex-direction: column;
+                padding: 12px;
+                margin-bottom: 10px;
+                background: var(--bg-secondary);
+                border-radius: 8px;
+                border-bottom: none !important;
+            }
+
+            .fill-table tr:last-child {
+                background: rgba(233, 69, 96, 0.15);
+                border: 1px solid var(--accent);
+            }
+
+            .fill-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            }
+
+            .fill-table td:last-child {
+                border-bottom: none !important;
+            }
+
+            .fill-table td::before {
+                content: attr(data-label);
+                font-weight: 500;
+                color: var(--text-secondary);
+                font-size: 0.85rem;
+            }
+
+            .procedure-step {
+                padding: 12px;
+            }
+
+            .step-number {
+                width: 30px;
+                height: 30px;
+                font-size: 0.9rem;
+                margin-right: 12px;
+            }
+
+            .step-content {
+                font-size: 0.95rem;
+            }
+
+            .step-pressure {
+                font-size: 1rem;
+                display: block;
+                margin-top: 4px;
+            }
+
+            .verification {
+                padding: 15px;
+            }
+
+            .verification-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .verification-item {
+                padding: 10px 5px;
+            }
+
+            .verification-label {
+                font-size: 0.75rem;
+            }
+
+            .verification-value {
+                font-size: 1.2rem;
+            }
+
+            .verification-check {
+                font-size: 0.8rem;
+            }
+
+            .warning-message, .error-message, .info-message {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+
+            footer {
+                margin-top: 20px;
+                font-size: 0.8rem;
+                padding: 0 10px;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 360px) {
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .card {
+                padding: 12px;
+            }
+
+            .tab-btn {
+                padding: 10px 5px;
+                font-size: 0.75rem;
+            }
+
+            .verification-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .verification-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px;
+            }
+
+            .verification-label {
+                font-size: 0.9rem;
+            }
+
+            .verification-value {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Safe area padding for notched phones */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(10px, env(safe-area-inset-left));
+                padding-right: max(10px, env(safe-area-inset-right));
+                padding-bottom: max(20px, env(safe-area-inset-bottom));
+            }
+        }
+
+        /* Prevent text selection on interactive elements */
+        .toggle, .btn, .tab-btn {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Better focus states for accessibility */
+        .toggle:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible, .tab-btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* Warning Banner */
+        .warning-banner {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            text-align: center;
+            padding: 12px 20px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.4);
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .warning-banner-bottom {
+            margin-bottom: 0;
+            margin-top: 20px;
+        }
+
+        /* Disclaimer Modal */
+        .disclaimer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .disclaimer-overlay.hidden {
+            display: none;
+        }
+
+        .disclaimer-modal {
+            background: var(--bg-card);
+            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .disclaimer-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            padding: 25px;
+            text-align: center;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .disclaimer-header h2 {
+            color: white;
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .disclaimer-header .icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .disclaimer-content {
+            padding: 25px;
+        }
+
+        .disclaimer-content h3 {
+            color: var(--accent);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .disclaimer-content p,
+        .disclaimer-content li {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .disclaimer-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer-content li {
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .disclaimer-content li::before {
+            content: "⚠";
+            position: absolute;
+            left: 0;
+        }
+
+        .disclaimer-content .critical {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid var(--accent);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .disclaimer-content .critical p {
+            color: var(--text-primary);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .disclaimer-footer {
+            padding: 20px 25px 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .disclaimer-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .disclaimer-checkbox input {
+            width: 24px;
+            height: 24px;
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .disclaimer-checkbox label {
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .btn-accept {
+            width: 100%;
+            padding: 18px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            background: var(--text-secondary);
+            color: var(--bg-primary);
+            cursor: not-allowed;
+            transition: all 0.3s ease;
+        }
+
+        .btn-accept.enabled {
+            background: linear-gradient(135deg, var(--success), #2ecc71);
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-accept.enabled:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(78, 204, 163, 0.4);
+        }
+
+        @media (max-width: 600px) {
+            .warning-banner {
+                font-size: 0.9rem;
+                padding: 10px 15px;
+                letter-spacing: 0.5px;
+            }
+
+            .disclaimer-header h2 {
+                font-size: 1.4rem;
+            }
+
+            .disclaimer-content {
+                padding: 20px;
+            }
+
+            .disclaimer-footer {
+                padding: 15px 20px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Disclaimer Modal -->
+    <div class="disclaimer-overlay" id="disclaimerOverlay">
+        <div class="disclaimer-modal">
+            <div class="disclaimer-header">
+                <div class="icon">⚠️</div>
+                <h2>Important Safety Disclaimer</h2>
+            </div>
+            <div class="disclaimer-content">
+                <h3>Inherent Risks of Gas Blending</h3>
+                <p>Breathing incorrect gas mixtures while diving can result in serious injury or death, including but not limited to:</p>
+                <ul>
+                    <li>Oxygen toxicity (CNS or pulmonary)</li>
+                    <li>Hypoxia (insufficient oxygen)</li>
+                    <li>Nitrogen narcosis</li>
+                    <li>Decompression sickness</li>
+                    <li>Hypercapnia (CO₂ retention)</li>
+                </ul>
+
+                <div class="critical">
+                    <p>ALWAYS ANALYZE YOUR FINAL MIX WITH A CALIBRATED OXYGEN AND HELIUM ANALYZER BEFORE EVERY DIVE.</p>
+                </div>
+
+                <h3>No Warranty</h3>
+                <p>This calculator is provided "AS IS" without warranty of any kind, express or implied. The developer assumes no liability for any errors in calculations, software bugs, or user input mistakes.</p>
+
+                <h3>Your Responsibility</h3>
+                <p>By using this application, you acknowledge that:</p>
+                <ul>
+                    <li>You are a trained technical diver or gas blender</li>
+                    <li>You will independently verify ALL calculations</li>
+                    <li>You will analyze your gas before diving</li>
+                    <li>You assume full responsibility for your safety</li>
+                    <li>You will not hold the developer liable for any injuries, damages, or death resulting from use of this tool</li>
+                </ul>
+            </div>
+            <div class="disclaimer-footer">
+                <div class="disclaimer-checkbox" onclick="toggleAcceptCheckbox()">
+                    <input type="checkbox" id="acceptCheckbox">
+                    <label for="acceptCheckbox">I understand the risks, accept full responsibility for my safety, and agree to always analyze my gas before diving.</label>
+                </div>
+                <button class="btn-accept" id="acceptBtn" onclick="acceptDisclaimer()">I Understand and Accept</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Top Warning Banner -->
+        <div class="warning-banner">
+            ⚠️ Always Analyze and Validate Your Gas! ⚠️
+        </div>
+
+        <header>
+            <h1>Trimix Fill Calculator</h1>
+            <p class="subtitle">Calculate gas volumes for custom breathing mixes</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('empty')">Fill From Empty</button>
+            <button class="tab-btn" onclick="switchTab('topup')">Top Up Existing</button>
+        </div>
+
+        <!-- Shared Unit Settings -->
+        <div class="card">
+            <h2 class="card-title">Unit Settings</h2>
+            <div class="toggle-container">
+                <span class="toggle-label">Imperial</span>
+                <div class="toggle" id="unitToggle" onclick="toggleUnits()"></div>
+                <span class="toggle-label">Metric</span>
+            </div>
+        </div>
+
+        <!-- ========== TAB 1: FILL FROM EMPTY ========== -->
+        <div id="tab-empty" class="tab-content active">
+            <div class="card">
+                <h2 class="card-title">Tank Configuration</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="tankVolume">Tank Volume <span class="unit-display volume-unit">(CF)</span></label>
+                        <input type="number" id="tankVolume" value="120" min="1" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="endPressure">Final Pressure <span class="unit-display pressure-unit">(PSI)</span></label>
+                        <input type="number" id="endPressure" value="3000" min="100" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Tank Setup</label>
+                        <div class="checkbox-group">
+                            <div class="toggle-container">
+                                <span class="toggle-label">Single</span>
+                                <div class="toggle" id="doubleToggle" onclick="toggleDouble()"></div>
+                                <span class="toggle-label">Doubles</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Target Mix</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="oxygenPercent">Oxygen %</label>
+                        <input type="number" id="oxygenPercent" value="10" min="0" max="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="heliumPercent">Helium %</label>
+                        <input type="number" id="heliumPercent" value="70" min="0" max="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="nitrogenPercent">Nitrogen % (calculated)</label>
+                        <input type="number" id="nitrogenPercent" value="20" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Top-Off Gas</h2>
+                <div class="form-group">
+                    <label for="topOffGas">Select Top-Off Mix</label>
+                    <select id="topOffGas">
+                        <option value="21">Air (21% O₂ / 79% N₂)</option>
+                        <option value="32">Nitrox 32 (32% O₂ / 68% N₂)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="calculateEmpty()">Calculate Fill</button>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="results card" id="results">
+                <div class="result-header">
+                    <h2 class="card-title" style="margin: 0; border: none; padding: 0;">Fill Recipe</h2>
+                    <span class="mix-badge" id="mixBadge"></span>
+                </div>
+
+                <table class="fill-table">
+                    <thead>
+                        <tr>
+                            <th>Gas</th>
+                            <th>Volume <span class="unit-display volume-unit"></span></th>
+                            <th>Partial Pressure <span class="unit-display pressure-unit"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="fillTableBody">
+                    </tbody>
+                </table>
+
+                <h3 style="margin-bottom: 15px;">Fill Procedure</h3>
+                <div id="procedureSteps"></div>
+
+                <div class="verification">
+                    <h3 class="verification-title">Mix Verification</h3>
+                    <div class="verification-grid" id="verificationGrid">
+                    </div>
+                </div>
+
+                <div class="warning-message" id="warningMessage" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- ========== TAB 2: TOP UP EXISTING ========== -->
+        <div id="tab-topup" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">Tank Configuration</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="topupTankVolume">Tank Volume <span class="unit-display volume-unit">(CF)</span></label>
+                        <input type="number" id="topupTankVolume" value="120" min="1" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="topupEndPressure">Final Pressure <span class="unit-display pressure-unit">(PSI)</span></label>
+                        <input type="number" id="topupEndPressure" value="3000" min="100" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Tank Setup</label>
+                        <div class="checkbox-group">
+                            <div class="toggle-container">
+                                <span class="toggle-label">Single</span>
+                                <div class="toggle" id="topupDoubleToggle" onclick="toggleTopupDouble()"></div>
+                                <span class="toggle-label">Doubles</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Current Tank Contents</h2>
+                <div class="form-grid form-grid-4">
+                    <div class="form-group">
+                        <label for="currentPressure">Current Pressure <span class="unit-display pressure-unit">(PSI)</span></label>
+                        <input type="number" id="currentPressure" value="500" min="0" step="50">
+                    </div>
+                    <div class="form-group">
+                        <label for="currentO2">Current O₂ %</label>
+                        <input type="number" id="currentO2" value="15" min="0" max="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="currentHe">Current He %</label>
+                        <input type="number" id="currentHe" value="55" min="0" max="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="currentN2">Current N₂ % (calc)</label>
+                        <input type="number" id="currentN2" value="30" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Target Mix</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="topupTargetO2">Target Oxygen %</label>
+                        <input type="number" id="topupTargetO2" value="10" min="0" max="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="topupTargetHe">Target Helium %</label>
+                        <input type="number" id="topupTargetHe" value="70" min="0" max="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="topupTargetN2">Target Nitrogen % (calc)</label>
+                        <input type="number" id="topupTargetN2" value="20" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Top-Off Gas</h2>
+                <div class="form-group">
+                    <label for="topupTopOffGas">Select Top-Off Mix</label>
+                    <select id="topupTopOffGas">
+                        <option value="21">Air (21% O₂ / 79% N₂)</option>
+                        <option value="32">Nitrox 32 (32% O₂ / 68% N₂)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="calculateTopup()">Calculate Top-Up</button>
+
+            <div class="error-message" id="topupErrorMessage"></div>
+
+            <div class="results card" id="topupResults">
+                <div class="result-header">
+                    <h2 class="card-title" style="margin: 0; border: none; padding: 0;">Top-Up Recipe</h2>
+                    <span class="mix-badge" id="topupMixBadge"></span>
+                </div>
+
+                <div class="info-message" id="topupInfoMessage"></div>
+
+                <table class="fill-table">
+                    <thead>
+                        <tr>
+                            <th>Gas</th>
+                            <th>Volume <span class="unit-display volume-unit"></span></th>
+                            <th>Partial Pressure <span class="unit-display pressure-unit"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="topupFillTableBody">
+                    </tbody>
+                </table>
+
+                <h3 style="margin-bottom: 15px;">Fill Procedure</h3>
+                <div id="topupProcedureSteps"></div>
+
+                <div class="verification">
+                    <h3 class="verification-title">Final Mix Verification</h3>
+                    <div class="verification-grid" id="topupVerificationGrid">
+                    </div>
+                </div>
+
+                <div class="warning-message" id="topupWarningMessage" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Warning Banner -->
+        <div class="warning-banner warning-banner-bottom">
+            ⚠️ Always Analyze and Validate Your Gas! ⚠️
+        </div>
+
+        <footer>
+            <p>Always verify calculations independently. Breathing wrong gas mixes can be fatal.</p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">This tool is provided "AS IS" without warranty. You assume all responsibility for verifying calculations.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Disclaimer functions
+        function checkDisclaimer() {
+            const accepted = localStorage.getItem('disclaimerAccepted');
+            if (accepted === 'true') {
+                document.getElementById('disclaimerOverlay').classList.add('hidden');
+            }
+        }
+
+        function toggleAcceptCheckbox() {
+            const checkbox = document.getElementById('acceptCheckbox');
+            checkbox.checked = !checkbox.checked;
+            updateAcceptButton();
+        }
+
+        function updateAcceptButton() {
+            const checkbox = document.getElementById('acceptCheckbox');
+            const btn = document.getElementById('acceptBtn');
+            if (checkbox.checked) {
+                btn.classList.add('enabled');
+            } else {
+                btn.classList.remove('enabled');
+            }
+        }
+
+        function acceptDisclaimer() {
+            const checkbox = document.getElementById('acceptCheckbox');
+            if (checkbox.checked) {
+                localStorage.setItem('disclaimerAccepted', 'true');
+                document.getElementById('disclaimerOverlay').classList.add('hidden');
+            }
+        }
+
+        // Check disclaimer on load
+        document.addEventListener('DOMContentLoaded', checkDisclaimer);
+
+        // Also update button when checkbox changes directly
+        document.getElementById('acceptCheckbox').addEventListener('change', updateAcceptButton);
+
+        // State
+        let isMetric = false;
+        let isDouble = false;
+        let isTopupDouble = false;
+        let activeTab = 'empty';
+
+        // Conversion constants
+        const PSI_TO_BAR = 0.0689476;
+        const BAR_TO_PSI = 14.5038;
+        const CF_TO_LITERS = 28.3168;
+        const LITERS_TO_CF = 0.0353147;
+
+        // Tab switching
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tab === 'empty') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('tab-empty').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('tab-topup').classList.add('active');
+            }
+        }
+
+        // Event listeners for Tab 1
+        document.getElementById('heliumPercent').addEventListener('input', updateNitrogen);
+        document.getElementById('oxygenPercent').addEventListener('input', updateNitrogen);
+
+        // Event listeners for Tab 2
+        document.getElementById('currentO2').addEventListener('input', updateCurrentN2);
+        document.getElementById('currentHe').addEventListener('input', updateCurrentN2);
+        document.getElementById('topupTargetHe').addEventListener('input', updateTopupTargetN2);
+        document.getElementById('topupTargetO2').addEventListener('input', updateTopupTargetN2);
+
+        function updateNitrogen() {
+            const he = parseFloat(document.getElementById('heliumPercent').value) || 0;
+            const o2 = parseFloat(document.getElementById('oxygenPercent').value) || 0;
+            const n2 = Math.max(0, 100 - he - o2);
+            document.getElementById('nitrogenPercent').value = n2.toFixed(1);
+        }
+
+        function updateCurrentN2() {
+            const o2 = parseFloat(document.getElementById('currentO2').value) || 0;
+            const he = parseFloat(document.getElementById('currentHe').value) || 0;
+            const n2 = Math.max(0, 100 - o2 - he);
+            document.getElementById('currentN2').value = n2.toFixed(1);
+        }
+
+        function updateTopupTargetN2() {
+            const he = parseFloat(document.getElementById('topupTargetHe').value) || 0;
+            const o2 = parseFloat(document.getElementById('topupTargetO2').value) || 0;
+            const n2 = Math.max(0, 100 - he - o2);
+            document.getElementById('topupTargetN2').value = n2.toFixed(1);
+        }
+
+        function toggleUnits() {
+            const toggle = document.getElementById('unitToggle');
+            isMetric = !isMetric;
+            toggle.classList.toggle('active', isMetric);
+            updateUnitLabels();
+            convertAllInputValues();
+        }
+
+        function toggleDouble() {
+            const toggle = document.getElementById('doubleToggle');
+            isDouble = !isDouble;
+            toggle.classList.toggle('active', isDouble);
+        }
+
+        function toggleTopupDouble() {
+            const toggle = document.getElementById('topupDoubleToggle');
+            isTopupDouble = !isTopupDouble;
+            toggle.classList.toggle('active', isTopupDouble);
+        }
+
+        function updateUnitLabels() {
+            document.querySelectorAll('.volume-unit').forEach(el => {
+                el.textContent = isMetric ? '(L)' : '(CF)';
+            });
+            document.querySelectorAll('.pressure-unit').forEach(el => {
+                el.textContent = isMetric ? '(bar)' : '(PSI)';
+            });
+        }
+
+        function convertAllInputValues() {
+            // Tab 1
+            convertInputValue('tankVolume', 'volume');
+            convertInputValue('endPressure', 'pressure');
+
+            // Tab 2
+            convertInputValue('topupTankVolume', 'volume');
+            convertInputValue('topupEndPressure', 'pressure');
+            convertInputValue('currentPressure', 'pressure');
+        }
+
+        function convertInputValue(inputId, type) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            if (type === 'volume') {
+                if (isMetric) {
+                    input.value = Math.round(parseFloat(input.value) * CF_TO_LITERS);
+                } else {
+                    input.value = Math.round(parseFloat(input.value) * LITERS_TO_CF);
+                }
+            } else if (type === 'pressure') {
+                if (isMetric) {
+                    input.value = Math.round(parseFloat(input.value) * PSI_TO_BAR);
+                } else {
+                    input.value = Math.round(parseFloat(input.value) * BAR_TO_PSI);
+                }
+            }
+        }
+
+        // ========== TAB 1: FILL FROM EMPTY ==========
+        function calculateEmpty() {
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('results').classList.remove('show');
+            document.getElementById('warningMessage').style.display = 'none';
+
+            let tankVolume = parseFloat(document.getElementById('tankVolume').value);
+            let endPressure = parseFloat(document.getElementById('endPressure').value);
+            const heliumPercent = parseFloat(document.getElementById('heliumPercent').value) / 100;
+            const oxygenPercent = parseFloat(document.getElementById('oxygenPercent').value) / 100;
+            const nitrogenPercent = parseFloat(document.getElementById('nitrogenPercent').value) / 100;
+            const topOffO2 = parseFloat(document.getElementById('topOffGas').value) / 100;
+            const topOffN2 = 1 - topOffO2;
+
+            let volumeInCF = isMetric ? tankVolume * LITERS_TO_CF : tankVolume;
+            let pressureInPSI = isMetric ? endPressure * BAR_TO_PSI : endPressure;
+
+            if (isDouble) {
+                volumeInCF *= 2;
+            }
+
+            const totalPercent = heliumPercent + oxygenPercent + nitrogenPercent;
+            if (Math.abs(totalPercent - 1) > 0.001) {
+                showError('errorMessage', 'Gas percentages must sum to 100%');
+                return;
+            }
+
+            if (heliumPercent < 0 || oxygenPercent < 0 || nitrogenPercent < 0) {
+                showError('errorMessage', 'Gas percentages cannot be negative');
+                return;
+            }
+
+            const totalVolume = volumeInCF;
+            const targetHelium = totalVolume * heliumPercent;
+            const targetOxygen = totalVolume * oxygenPercent;
+            const targetNitrogen = totalVolume * nitrogenPercent;
+
+            let topOffVolume, pureOxygenVolume;
+
+            if (nitrogenPercent === 0) {
+                topOffVolume = 0;
+                pureOxygenVolume = targetOxygen;
+            } else {
+                topOffVolume = targetNitrogen / topOffN2;
+                const oxygenFromTopOff = topOffVolume * topOffO2;
+                pureOxygenVolume = targetOxygen - oxygenFromTopOff;
+            }
+
+            if (pureOxygenVolume < -0.01) {
+                showError('errorMessage', `This mix cannot be achieved with ${topOffO2 * 100}% top-off gas. The top-off gas provides more oxygen than needed. Try reducing target O₂% or increasing target N₂%.`);
+                return;
+            }
+
+            pureOxygenVolume = Math.max(0, pureOxygenVolume);
+
+            const heliumPressure = (targetHelium / totalVolume) * pressureInPSI;
+            const oxygenPressure = (pureOxygenVolume / totalVolume) * pressureInPSI;
+            const topOffPressure = (topOffVolume / totalVolume) * pressureInPSI;
+
+            const afterHelium = heliumPressure;
+            const afterOxygen = afterHelium + oxygenPressure;
+            const afterTopOff = pressureInPSI;
+
+            displayEmptyResults({
+                totalVolume,
+                targetHelium,
+                pureOxygenVolume,
+                topOffVolume,
+                heliumPressure,
+                oxygenPressure,
+                topOffPressure,
+                afterHelium,
+                afterOxygen,
+                afterTopOff,
+                heliumPercent,
+                oxygenPercent,
+                nitrogenPercent,
+                topOffO2,
+                pressureInPSI
+            });
+        }
+
+        function displayEmptyResults(data) {
+            const {
+                totalVolume, targetHelium, pureOxygenVolume, topOffVolume,
+                heliumPressure, oxygenPressure, topOffPressure,
+                afterHelium, afterOxygen, afterTopOff,
+                heliumPercent, oxygenPercent, nitrogenPercent, topOffO2, pressureInPSI
+            } = data;
+
+            document.getElementById('mixBadge').textContent =
+                `${Math.round(oxygenPercent * 100)}/${Math.round(heliumPercent * 100)}/${Math.round(nitrogenPercent * 100)}`;
+
+            const formatVolume = (cf) => {
+                const val = isMetric ? cf * CF_TO_LITERS : cf;
+                return val.toFixed(2);
+            };
+
+            const formatPressure = (psi) => {
+                const val = isMetric ? psi * PSI_TO_BAR : psi;
+                return val.toFixed(1);
+            };
+
+            const volumeUnitStr = isMetric ? 'L' : 'CF';
+            const pressureUnitStr = isMetric ? 'bar' : 'PSI';
+
+            const tableBody = document.getElementById('fillTableBody');
+            tableBody.innerHTML = `
+                <tr>
+                    <td data-label="Gas"><span class="gas-indicator gas-helium"></span>Helium (first)</td>
+                    <td data-label="Volume"><strong>${formatVolume(targetHelium)}</strong> ${volumeUnitStr}</td>
+                    <td data-label="Pressure">${formatPressure(heliumPressure)} ${pressureUnitStr}</td>
+                </tr>
+                <tr>
+                    <td data-label="Gas"><span class="gas-indicator gas-oxygen"></span>Oxygen (second)</td>
+                    <td data-label="Volume"><strong>${formatVolume(pureOxygenVolume)}</strong> ${volumeUnitStr}</td>
+                    <td data-label="Pressure">${formatPressure(oxygenPressure)} ${pressureUnitStr}</td>
+                </tr>
+                <tr>
+                    <td data-label="Gas"><span class="gas-indicator gas-air"></span>${topOffO2 === 0.21 ? 'Air' : 'Nitrox 32'} (top-off)</td>
+                    <td data-label="Volume"><strong>${formatVolume(topOffVolume)}</strong> ${volumeUnitStr}</td>
+                    <td data-label="Pressure">${formatPressure(topOffPressure)} ${pressureUnitStr}</td>
+                </tr>
+                <tr style="background: var(--bg-secondary); font-weight: bold;">
+                    <td data-label="Gas">TOTAL</td>
+                    <td data-label="Volume">${formatVolume(totalVolume)} ${volumeUnitStr}</td>
+                    <td data-label="Pressure">${formatPressure(pressureInPSI)} ${pressureUnitStr}</td>
+                </tr>
+            `;
+
+            const procedureDiv = document.getElementById('procedureSteps');
+            procedureDiv.innerHTML = `
+                <div class="procedure-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div>Start at <strong>0 ${pressureUnitStr}</strong></div>
+                    </div>
+                </div>
+                <div class="procedure-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div>Add <strong>Helium</strong> to <span class="step-pressure">${formatPressure(afterHelium)} ${pressureUnitStr}</span></div>
+                    </div>
+                </div>
+                <div class="procedure-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div>Add <strong>Oxygen</strong> to <span class="step-pressure">${formatPressure(afterOxygen)} ${pressureUnitStr}</span></div>
+                    </div>
+                </div>
+                <div class="procedure-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <div>Top with <strong>${topOffO2 === 0.21 ? 'Air' : 'Nitrox 32'}</strong> to <span class="step-pressure">${formatPressure(afterTopOff)} ${pressureUnitStr}</span></div>
+                    </div>
+                </div>
+            `;
+
+            const verificationGrid = document.getElementById('verificationGrid');
+            verificationGrid.innerHTML = `
+                <div class="verification-item">
+                    <div class="verification-label">Helium</div>
+                    <div class="verification-value" style="color: var(--helium);">${(heliumPercent * 100).toFixed(1)}%</div>
+                    <div class="verification-check">&#10003;</div>
+                </div>
+                <div class="verification-item">
+                    <div class="verification-label">Oxygen</div>
+                    <div class="verification-value" style="color: var(--oxygen);">${(oxygenPercent * 100).toFixed(1)}%</div>
+                    <div class="verification-check">&#10003;</div>
+                </div>
+                <div class="verification-item">
+                    <div class="verification-label">Nitrogen</div>
+                    <div class="verification-value" style="color: var(--nitrogen);">${(nitrogenPercent * 100).toFixed(1)}%</div>
+                    <div class="verification-check">&#10003;</div>
+                </div>
+            `;
+
+            if (oxygenPercent > 0.21) {
+                const mod = calculateMOD(oxygenPercent);
+                const modDisplay = isMetric ? `${Math.round(mod * 0.3048)} m` : `${Math.round(mod)} ft`;
+                document.getElementById('warningMessage').innerHTML =
+                    `<strong>Note:</strong> Maximum Operating Depth (MOD) at 1.4 PO₂: <strong>${modDisplay}</strong>`;
+                document.getElementById('warningMessage').style.display = 'block';
+            }
+
+            document.getElementById('results').classList.add('show');
+            updateUnitLabels();
+
+            if (window.innerWidth <= 600) {
+                setTimeout(() => {
+                    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+
+        // ========== TAB 2: TOP UP EXISTING ==========
+        function calculateTopup() {
+            document.getElementById('topupErrorMessage').classList.remove('show');
+            document.getElementById('topupResults').classList.remove('show');
+            document.getElementById('topupWarningMessage').style.display = 'none';
+
+            // Get inputs
+            let tankVolume = parseFloat(document.getElementById('topupTankVolume').value);
+            let currentPressure = parseFloat(document.getElementById('currentPressure').value);
+            let endPressure = parseFloat(document.getElementById('topupEndPressure').value);
+
+            const currentO2 = parseFloat(document.getElementById('currentO2').value) / 100;
+            const currentHe = parseFloat(document.getElementById('currentHe').value) / 100;
+            const currentN2 = parseFloat(document.getElementById('currentN2').value) / 100;
+
+            const targetO2 = parseFloat(document.getElementById('topupTargetO2').value) / 100;
+            const targetHe = parseFloat(document.getElementById('topupTargetHe').value) / 100;
+            const targetN2 = parseFloat(document.getElementById('topupTargetN2').value) / 100;
+
+            const topOffO2 = parseFloat(document.getElementById('topupTopOffGas').value) / 100;
+            const topOffN2 = 1 - topOffO2;
+
+            // Convert to imperial for calculation
+            let volumeInCF = isMetric ? tankVolume * LITERS_TO_CF : tankVolume;
+            let currentPSI = isMetric ? currentPressure * BAR_TO_PSI : currentPressure;
+            let endPSI = isMetric ? endPressure * BAR_TO_PSI : endPressure;
+
+            if (isTopupDouble) {
+                volumeInCF *= 2;
+            }
+
+            // Validation
+            if (currentPSI >= endPSI) {
+                showError('topupErrorMessage', 'Final pressure must be greater than current pressure');
+                return;
+            }
+
+            const currentTotal = currentO2 + currentHe + currentN2;
+            const targetTotal = targetO2 + targetHe + targetN2;
+
+            if (Math.abs(currentTotal - 1) > 0.01) {
+                showError('topupErrorMessage', 'Current mix percentages must sum to 100%');
+                return;
+            }
+
+            if (Math.abs(targetTotal - 1) > 0.01) {
+                showError('topupErrorMessage', 'Target mix percentages must sum to 100%');
+                return;
+            }
+
+            // Calculate volumes based on pressure ratios
+            // At the end, we'll have endPSI total pressure with target mix
+            // We currently have currentPSI with current mix
+
+            // Think in terms of "pressure units" - each PSI represents a portion of the tank
+            const pressureToAdd = endPSI - currentPSI;
+
+            // Current gas amounts (in pressure units)
+            const existingO2_psi = currentPSI * currentO2;
+            const existingHe_psi = currentPSI * currentHe;
+            const existingN2_psi = currentPSI * currentN2;
+
+            // Target gas amounts (in pressure units)
+            const targetO2_psi = endPSI * targetO2;
+            const targetHe_psi = endPSI * targetHe;
+            const targetN2_psi = endPSI * targetN2;
+
+            // Gas needed to add (in pressure units)
+            const needO2_psi = targetO2_psi - existingO2_psi;
+            const needHe_psi = targetHe_psi - existingHe_psi;
+            const needN2_psi = targetN2_psi - existingN2_psi;
+
+            // Check if we need to remove gas (impossible without draining)
+            if (needHe_psi < -0.1) {
+                showError('topupErrorMessage', `Cannot achieve target mix: need to REMOVE ${Math.abs(needHe_psi).toFixed(1)} PSI worth of Helium. Drain some gas first or choose a higher He% target.`);
+                return;
+            }
+
+            // Calculate how much comes from top-off gas (for nitrogen)
+            let topOffPressure_psi, pureO2_psi;
+
+            if (needN2_psi <= 0.01) {
+                // No nitrogen needed from top-off
+                topOffPressure_psi = 0;
+                pureO2_psi = needO2_psi;
+            } else {
+                // Nitrogen only comes from top-off
+                topOffPressure_psi = needN2_psi / topOffN2;
+
+                // O2 from top-off
+                const o2FromTopOff_psi = topOffPressure_psi * topOffO2;
+
+                // Pure O2 needed
+                pureO2_psi = needO2_psi - o2FromTopOff_psi;
+            }
+
+            // Check if achievable
+            if (pureO2_psi < -0.1) {
+                showError('topupErrorMessage', `Cannot achieve target mix with ${topOffO2 * 100}% top-off gas. The top-off provides too much oxygen. Try increasing target O₂% or reducing target N₂%.`);
+                return;
+            }
+
+            // Check if total gas to add matches pressure difference
+            const totalToAdd = Math.max(0, needHe_psi) + Math.max(0, pureO2_psi) + topOffPressure_psi;
+            if (Math.abs(totalToAdd - pressureToAdd) > 1) {
+                showError('topupErrorMessage', `Mix is not achievable. The gas amounts don't add up correctly. This usually means the existing gas has more of a component than the target requires.`);
+                return;
+            }
+
+            pureO2_psi = Math.max(0, pureO2_psi);
+            const heToAdd_psi = Math.max(0, needHe_psi);
+
+            // Convert to volumes (CF)
+            const pressureRatio = volumeInCF / endPSI; // CF per PSI
+            const heToAdd_cf = heToAdd_psi * pressureRatio;
+            const o2ToAdd_cf = pureO2_psi * pressureRatio;
+            const topOffToAdd_cf = topOffPressure_psi * pressureRatio;
+            const totalToAdd_cf = pressureToAdd * pressureRatio;
+
+            // Calculate cumulative pressures for fill procedure
+            const afterHe = currentPSI + heToAdd_psi;
+            const afterO2 = afterHe + pureO2_psi;
+            const afterTopOff = endPSI;
+
+            displayTopupResults({
+                currentPSI,
+                endPSI,
+                pressureToAdd,
+                heToAdd_psi,
+                pureO2_psi,
+                topOffPressure_psi,
+                heToAdd_cf,
+                o2ToAdd_cf,
+                topOffToAdd_cf,
+                totalToAdd_cf,
+                afterHe,
+                afterO2,
+                afterTopOff,
+                targetO2,
+                targetHe,
+                targetN2,
+                topOffO2,
+                currentO2,
+                currentHe
+            });
+        }
+
+        function displayTopupResults(data) {
+            const {
+                currentPSI, endPSI, pressureToAdd,
+                heToAdd_psi, pureO2_psi, topOffPressure_psi,
+                heToAdd_cf, o2ToAdd_cf, topOffToAdd_cf, totalToAdd_cf,
+                afterHe, afterO2, afterTopOff,
+                targetO2, targetHe, targetN2, topOffO2,
+                currentO2, currentHe
+            } = data;
+
+            document.getElementById('topupMixBadge').textContent =
+                `${Math.round(targetO2 * 100)}/${Math.round(targetHe * 100)}/${Math.round(targetN2 * 100)}`;
+
+            const formatVolume = (cf) => {
+                const val = isMetric ? cf * CF_TO_LITERS : cf;
+                return val.toFixed(2);
+            };
+
+            const formatPressure = (psi) => {
+                const val = isMetric ? psi * PSI_TO_BAR : psi;
+                return val.toFixed(1);
+            };
+
+            const volumeUnitStr = isMetric ? 'L' : 'CF';
+            const pressureUnitStr = isMetric ? 'bar' : 'PSI';
+
+            // Info message
+            document.getElementById('topupInfoMessage').innerHTML =
+                `<strong>Starting with:</strong> ${formatPressure(currentPSI)} ${pressureUnitStr} of ${Math.round(currentO2*100)}/${Math.round(currentHe*100)} mix<br>
+                <strong>Adding:</strong> ${formatPressure(pressureToAdd)} ${pressureUnitStr} to reach ${formatPressure(endPSI)} ${pressureUnitStr}`;
+
+            const tableBody = document.getElementById('topupFillTableBody');
+            tableBody.innerHTML = `
+                <tr>
+                    <td data-label="Gas"><span class="gas-indicator gas-existing"></span>Existing Gas</td>
+                    <td data-label="Volume">—</td>
+                    <td data-label="Pressure">${formatPressure(currentPSI)} ${pressureUnitStr}</td>
+                </tr>
+                <tr>
+                    <td data-label="Gas"><span class="gas-indicator gas-helium"></span>Helium (add first)</td>
+                    <td data-label="Volume"><strong>${formatVolume(heToAdd_cf)}</strong> ${volumeUnitStr}</td>
+                    <td data-label="Pressure">+${formatPressure(heToAdd_psi)} ${pressureUnitStr}</td>
+                </tr>
+                <tr>
+                    <td data-label="Gas"><span class="gas-indicator gas-oxygen"></span>Oxygen (add second)</td>
+                    <td data-label="Volume"><strong>${formatVolume(o2ToAdd_cf)}</strong> ${volumeUnitStr}</td>
+                    <td data-label="Pressure">+${formatPressure(pureO2_psi)} ${pressureUnitStr}</td>
+                </tr>
+                <tr>
+                    <td data-label="Gas"><span class="gas-indicator gas-air"></span>${topOffO2 === 0.21 ? 'Air' : 'Nitrox 32'} (top-off)</td>
+                    <td data-label="Volume"><strong>${formatVolume(topOffToAdd_cf)}</strong> ${volumeUnitStr}</td>
+                    <td data-label="Pressure">+${formatPressure(topOffPressure_psi)} ${pressureUnitStr}</td>
+                </tr>
+                <tr style="background: var(--bg-secondary); font-weight: bold;">
+                    <td data-label="Gas">TOTAL ADDED</td>
+                    <td data-label="Volume">${formatVolume(totalToAdd_cf)} ${volumeUnitStr}</td>
+                    <td data-label="Pressure">+${formatPressure(pressureToAdd)} ${pressureUnitStr}</td>
+                </tr>
+            `;
+
+            const procedureDiv = document.getElementById('topupProcedureSteps');
+            procedureDiv.innerHTML = `
+                <div class="procedure-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div>Start at <strong>${formatPressure(currentPSI)} ${pressureUnitStr}</strong> (existing ${Math.round(currentO2*100)}/${Math.round(currentHe*100)})</div>
+                    </div>
+                </div>
+                <div class="procedure-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div>Add <strong>Helium</strong> to <span class="step-pressure">${formatPressure(afterHe)} ${pressureUnitStr}</span></div>
+                    </div>
+                </div>
+                <div class="procedure-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div>Add <strong>Oxygen</strong> to <span class="step-pressure">${formatPressure(afterO2)} ${pressureUnitStr}</span></div>
+                    </div>
+                </div>
+                <div class="procedure-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <div>Top with <strong>${topOffO2 === 0.21 ? 'Air' : 'Nitrox 32'}</strong> to <span class="step-pressure">${formatPressure(afterTopOff)} ${pressureUnitStr}</span></div>
+                    </div>
+                </div>
+            `;
+
+            const verificationGrid = document.getElementById('topupVerificationGrid');
+            verificationGrid.innerHTML = `
+                <div class="verification-item">
+                    <div class="verification-label">Helium</div>
+                    <div class="verification-value" style="color: var(--helium);">${(targetHe * 100).toFixed(1)}%</div>
+                    <div class="verification-check">&#10003;</div>
+                </div>
+                <div class="verification-item">
+                    <div class="verification-label">Oxygen</div>
+                    <div class="verification-value" style="color: var(--oxygen);">${(targetO2 * 100).toFixed(1)}%</div>
+                    <div class="verification-check">&#10003;</div>
+                </div>
+                <div class="verification-item">
+                    <div class="verification-label">Nitrogen</div>
+                    <div class="verification-value" style="color: var(--nitrogen);">${(targetN2 * 100).toFixed(1)}%</div>
+                    <div class="verification-check">&#10003;</div>
+                </div>
+            `;
+
+            if (targetO2 > 0.21) {
+                const mod = calculateMOD(targetO2);
+                const modDisplay = isMetric ? `${Math.round(mod * 0.3048)} m` : `${Math.round(mod)} ft`;
+                document.getElementById('topupWarningMessage').innerHTML =
+                    `<strong>Note:</strong> Maximum Operating Depth (MOD) at 1.4 PO₂: <strong>${modDisplay}</strong>`;
+                document.getElementById('topupWarningMessage').style.display = 'block';
+            }
+
+            document.getElementById('topupResults').classList.add('show');
+            updateUnitLabels();
+
+            if (window.innerWidth <= 600) {
+                setTimeout(() => {
+                    document.getElementById('topupResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+
+        // ========== SHARED FUNCTIONS ==========
+        function calculateMOD(o2Fraction) {
+            const po2Max = 1.4;
+            const ata = po2Max / o2Fraction;
+            const depthFeet = (ata - 1) * 33;
+            return depthFeet;
+        }
+
+        function showError(elementId, message) {
+            const errorDiv = document.getElementById(elementId);
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        // Initialize
+        updateNitrogen();
+        updateCurrentN2();
+        updateTopupTargetN2();
+    </script>
+</body>
+</html>
