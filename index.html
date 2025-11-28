@@ -1641,11 +1641,6 @@
             }
 
             // Validation
-            if (currentPSI >= endPSI) {
-                showError('topupErrorMessage', 'Final pressure must be greater than current pressure');
-                return;
-            }
-
             const currentTotal = currentO2 + currentHe + currentN2;
             const targetTotal = targetO2 + targetHe + targetN2;
 
@@ -1659,35 +1654,56 @@
                 return;
             }
 
-            // Calculate volumes based on pressure ratios
-            // At the end, we'll have endPSI total pressure with target mix
-            // We currently have currentPSI with current mix
+            // Calculate the optimal dump pressure
+            // We need to find the maximum pressure we can keep while still achieving the target mix
+            // Constraints:
+            // 1. Remaining He after dump <= target He at end pressure
+            // 2. Remaining N2 after dump <= target N2 at end pressure (accounting for top-off)
+            // 3. Pure O2 to add must be >= 0
 
-            // Think in terms of "pressure units" - each PSI represents a portion of the tank
-            const pressureToAdd = endPSI - currentPSI;
+            let dumpToPSI = currentPSI; // Start assuming no dump needed
+            let requiresDump = false;
 
-            // Current gas amounts (in pressure units)
-            const existingO2_psi = currentPSI * currentO2;
-            const existingHe_psi = currentPSI * currentHe;
-            const existingN2_psi = currentPSI * currentN2;
-
-            // Target gas amounts (in pressure units)
-            const targetO2_psi = endPSI * targetO2;
+            // Target amounts at final pressure
             const targetHe_psi = endPSI * targetHe;
             const targetN2_psi = endPSI * targetN2;
+            const targetO2_psi = endPSI * targetO2;
 
-            // Gas needed to add (in pressure units)
-            const needO2_psi = targetO2_psi - existingO2_psi;
-            const needHe_psi = targetHe_psi - existingHe_psi;
-            const needN2_psi = targetN2_psi - existingN2_psi;
-
-            // Check if we need to remove gas (impossible without draining)
-            if (needHe_psi < -0.1) {
-                showError('topupErrorMessage', `Cannot achieve target mix: need to REMOVE ${Math.abs(needHe_psi).toFixed(1)} PSI worth of Helium. Drain some gas first or choose a higher He% target.`);
-                return;
+            // Constraint 1: Helium
+            // dumpToPSI * currentHe <= targetHe_psi
+            if (currentHe > 0) {
+                const maxDumpForHe = targetHe_psi / currentHe;
+                if (maxDumpForHe < dumpToPSI) {
+                    dumpToPSI = maxDumpForHe;
+                    requiresDump = true;
+                }
             }
 
-            // Calculate how much comes from top-off gas (for nitrogen)
+            // Constraint 2: Nitrogen
+            // dumpToPSI * currentN2 <= targetN2_psi
+            if (currentN2 > 0) {
+                const maxDumpForN2 = targetN2_psi / currentN2;
+                if (maxDumpForN2 < dumpToPSI) {
+                    dumpToPSI = maxDumpForN2;
+                    requiresDump = true;
+                }
+            }
+
+            // Ensure we don't have negative dump pressure
+            dumpToPSI = Math.max(0, dumpToPSI);
+
+            // Now calculate the fill from dumpToPSI
+            // After dumping, we have:
+            const afterDumpHe_psi = dumpToPSI * currentHe;
+            const afterDumpN2_psi = dumpToPSI * currentN2;
+            const afterDumpO2_psi = dumpToPSI * currentO2;
+
+            // Gas needed to add
+            let needHe_psi = targetHe_psi - afterDumpHe_psi;
+            let needN2_psi = targetN2_psi - afterDumpN2_psi;
+            let needO2_psi = targetO2_psi - afterDumpO2_psi;
+
+            // Calculate top-off and pure O2
             let topOffPressure_psi, pureO2_psi;
 
             if (needN2_psi <= 0.01) {
@@ -1705,45 +1721,104 @@
                 pureO2_psi = needO2_psi - o2FromTopOff_psi;
             }
 
-            // Check if achievable
+            // If pure O2 is still negative, we need to dump more
+            // This happens when top-off provides too much O2
+            // Binary search for the right dump pressure
             if (pureO2_psi < -0.1) {
-                showError('topupErrorMessage', `Cannot achieve target mix with ${topOffO2 * 100}% top-off gas. The top-off provides too much oxygen. Try increasing target O₂% or reducing target N₂%.`);
+                let lowPSI = 0;
+                let highPSI = dumpToPSI;
+
+                for (let i = 0; i < 50; i++) { // Binary search iterations
+                    const midPSI = (lowPSI + highPSI) / 2;
+
+                    const testHe = midPSI * currentHe;
+                    const testN2 = midPSI * currentN2;
+                    const testO2 = midPSI * currentO2;
+
+                    const testNeedN2 = targetN2_psi - testN2;
+                    const testNeedO2 = targetO2_psi - testO2;
+
+                    let testTopOff, testPureO2;
+                    if (testNeedN2 <= 0.01) {
+                        testTopOff = 0;
+                        testPureO2 = testNeedO2;
+                    } else {
+                        testTopOff = testNeedN2 / topOffN2;
+                        testPureO2 = testNeedO2 - (testTopOff * topOffO2);
+                    }
+
+                    if (testPureO2 >= -0.01) {
+                        lowPSI = midPSI; // Can keep more gas
+                    } else {
+                        highPSI = midPSI; // Need to dump more
+                    }
+                }
+
+                dumpToPSI = lowPSI;
+                requiresDump = true;
+
+                // Recalculate with final dump pressure
+                const finalHe = dumpToPSI * currentHe;
+                const finalN2 = dumpToPSI * currentN2;
+                const finalO2 = dumpToPSI * currentO2;
+
+                needHe_psi = targetHe_psi - finalHe;
+                needN2_psi = targetN2_psi - finalN2;
+                needO2_psi = targetO2_psi - finalO2;
+
+                if (needN2_psi <= 0.01) {
+                    topOffPressure_psi = 0;
+                    pureO2_psi = needO2_psi;
+                } else {
+                    topOffPressure_psi = needN2_psi / topOffN2;
+                    pureO2_psi = needO2_psi - (topOffPressure_psi * topOffO2);
+                }
+            }
+
+            // Final validation
+            if (needHe_psi < -0.1) {
+                showError('topupErrorMessage', `Cannot achieve target mix even after dumping all gas. The target He% is too low for the given end pressure.`);
                 return;
             }
 
-            // Check if total gas to add matches pressure difference
-            const totalToAdd = Math.max(0, needHe_psi) + Math.max(0, pureO2_psi) + topOffPressure_psi;
-            if (Math.abs(totalToAdd - pressureToAdd) > 1) {
-                showError('topupErrorMessage', `Mix is not achievable. The gas amounts don't add up correctly. This usually means the existing gas has more of a component than the target requires.`);
+            if (pureO2_psi < -0.1) {
+                showError('topupErrorMessage', `Cannot achieve target mix with ${topOffO2 * 100}% top-off gas. Try a different top-off gas or adjust target percentages.`);
                 return;
             }
 
+            // Ensure non-negative values
             pureO2_psi = Math.max(0, pureO2_psi);
-            const heToAdd_psi = Math.max(0, needHe_psi);
+            needHe_psi = Math.max(0, needHe_psi);
+            topOffPressure_psi = Math.max(0, topOffPressure_psi);
 
             // Convert to volumes (CF)
             const pressureRatio = volumeInCF / endPSI; // CF per PSI
-            const heToAdd_cf = heToAdd_psi * pressureRatio;
+            const heToAdd_cf = needHe_psi * pressureRatio;
             const o2ToAdd_cf = pureO2_psi * pressureRatio;
             const topOffToAdd_cf = topOffPressure_psi * pressureRatio;
+            const pressureToAdd = endPSI - dumpToPSI;
             const totalToAdd_cf = pressureToAdd * pressureRatio;
 
             // Calculate cumulative pressures for fill procedure
-            const afterHe = currentPSI + heToAdd_psi;
+            const afterDump = dumpToPSI;
+            const afterHe = dumpToPSI + needHe_psi;
             const afterO2 = afterHe + pureO2_psi;
             const afterTopOff = endPSI;
 
             displayTopupResults({
-                currentPSI,
+                originalPSI: currentPSI,
+                dumpToPSI,
+                requiresDump,
                 endPSI,
                 pressureToAdd,
-                heToAdd_psi,
+                heToAdd_psi: needHe_psi,
                 pureO2_psi,
                 topOffPressure_psi,
                 heToAdd_cf,
                 o2ToAdd_cf,
                 topOffToAdd_cf,
                 totalToAdd_cf,
+                afterDump,
                 afterHe,
                 afterO2,
                 afterTopOff,
@@ -1758,10 +1833,10 @@
 
         function displayTopupResults(data) {
             const {
-                currentPSI, endPSI, pressureToAdd,
+                originalPSI, dumpToPSI, requiresDump, endPSI, pressureToAdd,
                 heToAdd_psi, pureO2_psi, topOffPressure_psi,
                 heToAdd_cf, o2ToAdd_cf, topOffToAdd_cf, totalToAdd_cf,
-                afterHe, afterO2, afterTopOff,
+                afterDump, afterHe, afterO2, afterTopOff,
                 targetO2, targetHe, targetN2, topOffO2,
                 currentO2, currentHe
             } = data;
@@ -1782,18 +1857,46 @@
             const volumeUnitStr = isMetric ? 'L' : 'CF';
             const pressureUnitStr = isMetric ? 'bar' : 'PSI';
 
-            // Info message
-            document.getElementById('topupInfoMessage').innerHTML =
-                `<strong>Starting with:</strong> ${formatPressure(currentPSI)} ${pressureUnitStr} of ${Math.round(currentO2*100)}/${Math.round(currentHe*100)} mix<br>
+            // Info message - different for dump vs no dump
+            let infoHTML;
+            if (requiresDump) {
+                const dumpAmount = originalPSI - dumpToPSI;
+                infoHTML = `<strong style="color: var(--warning);">⚠️ Dump Required:</strong> Release ${formatPressure(dumpAmount)} ${pressureUnitStr} (from ${formatPressure(originalPSI)} to ${formatPressure(dumpToPSI)} ${pressureUnitStr})<br>
+                <strong>Starting mix:</strong> ${Math.round(currentO2*100)}/${Math.round(currentHe*100)} (O₂/He)<br>
+                <strong>After dump + fill:</strong> ${formatPressure(endPSI)} ${pressureUnitStr} of target mix`;
+            } else {
+                infoHTML = `<strong>Starting with:</strong> ${formatPressure(originalPSI)} ${pressureUnitStr} of ${Math.round(currentO2*100)}/${Math.round(currentHe*100)} mix<br>
                 <strong>Adding:</strong> ${formatPressure(pressureToAdd)} ${pressureUnitStr} to reach ${formatPressure(endPSI)} ${pressureUnitStr}`;
+            }
+            document.getElementById('topupInfoMessage').innerHTML = infoHTML;
 
-            const tableBody = document.getElementById('topupFillTableBody');
-            tableBody.innerHTML = `
+            // Build table rows
+            let tableHTML = '';
+
+            if (requiresDump) {
+                tableHTML += `
+                <tr style="background: rgba(255, 193, 7, 0.15);">
+                    <td data-label="Gas"><span class="gas-indicator" style="background: var(--warning);"></span>Original Gas</td>
+                    <td data-label="Volume">—</td>
+                    <td data-label="Pressure">${formatPressure(originalPSI)} ${pressureUnitStr}</td>
+                </tr>
+                <tr style="background: rgba(255, 193, 7, 0.15);">
+                    <td data-label="Gas"><span class="gas-indicator" style="background: var(--warning);"></span>After Dump</td>
+                    <td data-label="Volume">—</td>
+                    <td data-label="Pressure">${formatPressure(dumpToPSI)} ${pressureUnitStr} <span style="color: var(--warning);">(-${formatPressure(originalPSI - dumpToPSI)})</span></td>
+                </tr>
+                `;
+            } else {
+                tableHTML += `
                 <tr>
                     <td data-label="Gas"><span class="gas-indicator gas-existing"></span>Existing Gas</td>
                     <td data-label="Volume">—</td>
-                    <td data-label="Pressure">${formatPressure(currentPSI)} ${pressureUnitStr}</td>
+                    <td data-label="Pressure">${formatPressure(originalPSI)} ${pressureUnitStr}</td>
                 </tr>
+                `;
+            }
+
+            tableHTML += `
                 <tr>
                     <td data-label="Gas"><span class="gas-indicator gas-helium"></span>Helium (add first)</td>
                     <td data-label="Volume"><strong>${formatVolume(heToAdd_cf)}</strong> ${volumeUnitStr}</td>
@@ -1816,33 +1919,54 @@
                 </tr>
             `;
 
-            const procedureDiv = document.getElementById('topupProcedureSteps');
-            procedureDiv.innerHTML = `
+            document.getElementById('topupFillTableBody').innerHTML = tableHTML;
+
+            // Build procedure steps
+            let stepNumber = 1;
+            let procedureHTML = '';
+
+            procedureHTML += `
                 <div class="procedure-step">
-                    <div class="step-number">1</div>
+                    <div class="step-number">${stepNumber++}</div>
                     <div class="step-content">
-                        <div>Start at <strong>${formatPressure(currentPSI)} ${pressureUnitStr}</strong> (existing ${Math.round(currentO2*100)}/${Math.round(currentHe*100)})</div>
+                        <div>Start at <strong>${formatPressure(originalPSI)} ${pressureUnitStr}</strong> (existing ${Math.round(currentO2*100)}/${Math.round(currentHe*100)})</div>
                     </div>
                 </div>
+            `;
+
+            if (requiresDump) {
+                procedureHTML += `
+                <div class="procedure-step" style="background: rgba(255, 193, 7, 0.2); border: 1px solid var(--warning);">
+                    <div class="step-number" style="background: var(--warning);">${stepNumber++}</div>
+                    <div class="step-content">
+                        <div><strong style="color: var(--warning);">DUMP</strong> gas down to <span class="step-pressure">${formatPressure(dumpToPSI)} ${pressureUnitStr}</span></div>
+                    </div>
+                </div>
+                `;
+            }
+
+            procedureHTML += `
                 <div class="procedure-step">
-                    <div class="step-number">2</div>
+                    <div class="step-number">${stepNumber++}</div>
                     <div class="step-content">
                         <div>Add <strong>Helium</strong> to <span class="step-pressure">${formatPressure(afterHe)} ${pressureUnitStr}</span></div>
                     </div>
                 </div>
                 <div class="procedure-step">
-                    <div class="step-number">3</div>
+                    <div class="step-number">${stepNumber++}</div>
                     <div class="step-content">
                         <div>Add <strong>Oxygen</strong> to <span class="step-pressure">${formatPressure(afterO2)} ${pressureUnitStr}</span></div>
                     </div>
                 </div>
                 <div class="procedure-step">
-                    <div class="step-number">4</div>
+                    <div class="step-number">${stepNumber++}</div>
                     <div class="step-content">
                         <div>Top with <strong>${topOffO2 === 0.21 ? 'Air' : 'Nitrox 32'}</strong> to <span class="step-pressure">${formatPressure(afterTopOff)} ${pressureUnitStr}</span></div>
                     </div>
                 </div>
             `;
+
+            document.getElementById('topupProcedureSteps').innerHTML = procedureHTML;
 
             const verificationGrid = document.getElementById('topupVerificationGrid');
             verificationGrid.innerHTML = `
