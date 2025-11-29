@@ -433,6 +433,62 @@
             color: var(--text-secondary);
         }
 
+        /* Cost breakdown styles */
+        .cost-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+
+        .cost-item.cost-total {
+            background: linear-gradient(135deg, var(--success), #2ecc71);
+            margin-top: 5px;
+        }
+
+        .cost-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+        }
+
+        .cost-total .cost-label {
+            color: white;
+            font-weight: 600;
+        }
+
+        .cost-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .cost-total .cost-value {
+            color: white;
+            font-size: 1.4rem;
+        }
+
+        @media (max-width: 600px) {
+            .cost-item {
+                padding: 8px 12px;
+            }
+            .cost-value {
+                font-size: 1.1rem;
+            }
+            .cost-total .cost-value {
+                font-size: 1.2rem;
+            }
+        }
+
         footer {
             text-align: center;
             margin-top: 30px;
@@ -980,16 +1036,7 @@
         <div class="tab-nav">
             <button class="tab-btn active" onclick="switchTab('empty')">Fill From Empty</button>
             <button class="tab-btn" onclick="switchTab('topup')">Top Up Existing</button>
-        </div>
-
-        <!-- Shared Unit Settings -->
-        <div class="card">
-            <h2 class="card-title">Unit Settings</h2>
-            <div class="toggle-container">
-                <span class="toggle-label">Imperial</span>
-                <div class="toggle" id="unitToggle" onclick="toggleUnits()"></div>
-                <span class="toggle-label">Metric</span>
-            </div>
+            <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
         </div>
 
         <!-- ========== TAB 1: FILL FROM EMPTY ========== -->
@@ -1076,6 +1123,10 @@
                     <h3 class="verification-title">Mix Verification</h3>
                     <div class="verification-grid" id="verificationGrid">
                     </div>
+                </div>
+
+                <div class="verification" id="costSummary" style="margin-top: 20px; background: linear-gradient(135deg, rgba(78, 204, 163, 0.1), rgba(52, 152, 219, 0.1));">
+                    <h3 class="verification-title" style="color: var(--success);">Fill Cost Estimate</h3>
                 </div>
 
                 <div class="warning-message" id="warningMessage" style="display: none;"></div>
@@ -1192,7 +1243,62 @@
                     </div>
                 </div>
 
+                <div class="verification" id="topupCostSummary" style="margin-top: 20px; background: linear-gradient(135deg, rgba(78, 204, 163, 0.1), rgba(52, 152, 219, 0.1));">
+                    <h3 class="verification-title" style="color: var(--success);">Fill Cost Estimate</h3>
+                </div>
+
                 <div class="warning-message" id="topupWarningMessage" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- ========== TAB 3: SETTINGS ========== -->
+        <div id="tab-settings" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">Unit Settings</h2>
+                <div class="toggle-container" style="justify-content: flex-start;">
+                    <span class="toggle-label">Imperial</span>
+                    <div class="toggle" id="unitToggle" onclick="toggleUnits()"></div>
+                    <span class="toggle-label">Metric</span>
+                </div>
+                <p style="margin-top: 15px; color: var(--text-secondary); font-size: 0.9rem;">
+                    Imperial: PSI, Cubic Feet (CF)<br>
+                    Metric: bar, Liters (water capacity)
+                </p>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Gas Costs</h2>
+                <p style="margin-bottom: 15px; color: var(--text-secondary); font-size: 0.9rem;">
+                    Set your local gas prices to calculate fill costs. Prices are per cubic foot (CF).
+                </p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="costHelium">Helium ($/CF)</label>
+                        <input type="number" id="costHelium" value="1.95" min="0" step="0.01" onchange="saveCostSettings()">
+                    </div>
+                    <div class="form-group">
+                        <label for="costOxygen">Oxygen ($/CF)</label>
+                        <input type="number" id="costOxygen" value="0.39" min="0" step="0.01" onchange="saveCostSettings()">
+                    </div>
+                    <div class="form-group">
+                        <label for="costTopOff">Top-Off Gas ($/CF)</label>
+                        <input type="number" id="costTopOff" value="0.05" min="0" step="0.01" onchange="saveCostSettings()">
+                    </div>
+                </div>
+                <p style="margin-top: 15px; color: var(--text-secondary); font-size: 0.85rem;">
+                    <strong>Default prices:</strong> He $1.95/CF, O₂ $0.39/CF, Top-Off $0.05/CF
+                </p>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">About</h2>
+                <p style="color: var(--text-secondary); line-height: 1.6;">
+                    This calculator helps technical divers calculate gas fill volumes for custom trimix blends.
+                    Always verify calculations independently and analyze your gas before diving.
+                </p>
+                <p style="margin-top: 15px; color: var(--text-secondary); font-size: 0.85rem;">
+                    Settings are saved automatically to your device.
+                </p>
             </div>
         </div>
 
@@ -1267,9 +1373,12 @@
             if (tab === 'empty') {
                 document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
                 document.getElementById('tab-empty').classList.add('active');
-            } else {
+            } else if (tab === 'topup') {
                 document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
                 document.getElementById('tab-topup').classList.add('active');
+            } else if (tab === 'settings') {
+                document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
+                document.getElementById('tab-settings').classList.add('active');
             }
         }
 
@@ -1310,6 +1419,72 @@
             toggle.classList.toggle('active', isMetric);
             updateUnitLabels();
             convertAllInputValues();
+            saveSettings();
+        }
+
+        // ========== SETTINGS MANAGEMENT ==========
+        function saveSettings() {
+            const settings = {
+                isMetric: isMetric,
+                costHelium: parseFloat(document.getElementById('costHelium').value) || 1.95,
+                costOxygen: parseFloat(document.getElementById('costOxygen').value) || 0.39,
+                costTopOff: parseFloat(document.getElementById('costTopOff').value) || 0.05
+            };
+            localStorage.setItem('trimixCalculatorSettings', JSON.stringify(settings));
+        }
+
+        function saveCostSettings() {
+            saveSettings();
+        }
+
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('trimixCalculatorSettings');
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+
+                    // Load unit preference
+                    if (settings.isMetric !== undefined && settings.isMetric !== isMetric) {
+                        isMetric = settings.isMetric;
+                        document.getElementById('unitToggle').classList.toggle('active', isMetric);
+                        updateUnitLabels();
+                        // Convert default values to metric if needed
+                        if (isMetric) {
+                            convertAllInputValues();
+                        }
+                    }
+
+                    // Load cost settings
+                    if (settings.costHelium !== undefined) {
+                        document.getElementById('costHelium').value = settings.costHelium.toFixed(2);
+                    }
+                    if (settings.costOxygen !== undefined) {
+                        document.getElementById('costOxygen').value = settings.costOxygen.toFixed(2);
+                    }
+                    if (settings.costTopOff !== undefined) {
+                        document.getElementById('costTopOff').value = settings.costTopOff.toFixed(2);
+                    }
+                } catch (e) {
+                    console.error('Error loading settings:', e);
+                }
+            }
+        }
+
+        function getCostSettings() {
+            return {
+                helium: parseFloat(document.getElementById('costHelium').value) || 1.95,
+                oxygen: parseFloat(document.getElementById('costOxygen').value) || 0.39,
+                topOff: parseFloat(document.getElementById('costTopOff').value) || 0.05
+            };
+        }
+
+        function calculateFillCost(heliumCF, oxygenCF, topOffCF) {
+            const costs = getCostSettings();
+            const heliumCost = heliumCF * costs.helium;
+            const oxygenCost = oxygenCF * costs.oxygen;
+            const topOffCost = topOffCF * costs.topOff;
+            const totalCost = heliumCost + oxygenCost + topOffCost;
+            return { heliumCost, oxygenCost, topOffCost, totalCost };
         }
 
         function toggleDouble() {
@@ -1586,6 +1761,29 @@
                     `<strong>Note:</strong> Maximum Operating Depth (MOD) at 1.4 PO₂: <strong>${modDisplay}</strong>`;
                 document.getElementById('warningMessage').style.display = 'block';
             }
+
+            // Calculate and display fill cost
+            const fillCost = calculateFillCost(targetHelium, pureOxygenVolume, topOffVolume);
+            document.getElementById('costSummary').innerHTML = `
+                <div class="cost-breakdown">
+                    <div class="cost-item">
+                        <span class="cost-label"><span class="gas-indicator gas-helium"></span>Helium</span>
+                        <span class="cost-value">$${fillCost.heliumCost.toFixed(2)}</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label"><span class="gas-indicator gas-oxygen"></span>Oxygen</span>
+                        <span class="cost-value">$${fillCost.oxygenCost.toFixed(2)}</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label"><span class="gas-indicator gas-air"></span>Top-Off</span>
+                        <span class="cost-value">$${fillCost.topOffCost.toFixed(2)}</span>
+                    </div>
+                    <div class="cost-item cost-total">
+                        <span class="cost-label">Total Fill Cost</span>
+                        <span class="cost-value">$${fillCost.totalCost.toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
 
             document.getElementById('results').classList.add('show');
             updateUnitLabels();
@@ -1995,6 +2193,30 @@
                 document.getElementById('topupWarningMessage').style.display = 'block';
             }
 
+            // Calculate and display fill cost
+            const fillCost = calculateFillCost(heToAdd_cf, o2ToAdd_cf, topOffToAdd_cf);
+            document.getElementById('topupCostSummary').innerHTML = `
+                <h3 class="verification-title" style="color: var(--success);">Fill Cost Estimate</h3>
+                <div class="cost-breakdown">
+                    <div class="cost-item">
+                        <span class="cost-label"><span class="gas-indicator gas-helium"></span>Helium</span>
+                        <span class="cost-value">$${fillCost.heliumCost.toFixed(2)}</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label"><span class="gas-indicator gas-oxygen"></span>Oxygen</span>
+                        <span class="cost-value">$${fillCost.oxygenCost.toFixed(2)}</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label"><span class="gas-indicator gas-air"></span>Top-Off</span>
+                        <span class="cost-value">$${fillCost.topOffCost.toFixed(2)}</span>
+                    </div>
+                    <div class="cost-item cost-total">
+                        <span class="cost-label">Total Fill Cost</span>
+                        <span class="cost-value">$${fillCost.totalCost.toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+
             document.getElementById('topupResults').classList.add('show');
             updateUnitLabels();
 
@@ -2020,6 +2242,7 @@
         }
 
         // Initialize
+        loadSettings();
         updateNitrogen();
         updateCurrentN2();
         updateTopupTargetN2();
